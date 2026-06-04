@@ -1,0 +1,19 @@
+[
+  {
+    "id": "mpxg5zt0ma0klj9",
+    "phoneNumber": "13800138000",
+    "carrier": "中国移动",
+    "cycleDays": 8,
+    "lastKeepDate": "2026-05-28",
+    "note": "示例号码",
+    "records": [
+      {
+        "id": "mpxg5zt0wrvh6tt",
+        "date": "2026-05-24",
+        "method": "系统初始化",
+        "note": "预置示例数据"
+      }
+    ],
+    "createdAt": "2026-05-24"
+  }
+]

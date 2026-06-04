@@ -1,0 +1,19 @@
+{
+  "email": {
+    "enabled": true,
+    "to": "76886647@qq.com",
+    "from": "",
+    "smtpHost": "smtp.qq.com",
+    "smtpPort": 465,
+    "smtpSecure": true,
+    "smtpUser": "76886647@qq.com",
+    "smtpPass": "fhgfhveudzffbjbb"
+  },
+  "reminder": {
+    "checkTimes": [
+      "08:00",
+      "20:00"
+    ],
+    "warnDaysBefore": 3
+  }
+}
