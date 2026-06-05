@@ -6,38 +6,29 @@ import {
   DialogActions,
   Button,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Box,
 } from '@mui/material';
-import { CARRIER_OPTIONS, validatePhoneNumber, getTodayStr } from '../utils/helpers';
+import { validatePhoneNumber, getTodayStr } from '../utils/helpers';
 
-/** Default form values */
 const DEFAULT_VALUES = {
   phoneNumber: '',
-  carrier: '中国移动',
+  carrier: '',
   cycleDays: 30,
   lastKeepDate: getTodayStr(),
   note: '',
 };
 
-/**
- * Phone form dialog for adding / editing phone numbers.
- */
 export default function PhoneForm({ open, phone, onSubmit, onClose }) {
   const isEdit = Boolean(phone);
   const [values, setValues] = useState(DEFAULT_VALUES);
   const [errors, setErrors] = useState({});
 
-  // Reset form when dialog opens or phone changes
   useEffect(() => {
     if (open) {
       if (phone) {
         setValues({
           phoneNumber: phone.phoneNumber,
-          carrier: phone.carrier,
+          carrier: phone.carrier || '',
           cycleDays: phone.cycleDays,
           lastKeepDate: phone.lastKeepDate,
           note: phone.note || '',
@@ -49,42 +40,35 @@ export default function PhoneForm({ open, phone, onSubmit, onClose }) {
     }
   }, [open, phone]);
 
-  /** Update a single field value */
   const handleChange = (field) => (e) => {
     const val = e.target.value;
     setValues((v) => ({ ...v, [field]: val }));
-    // Clear error on change
-    if (errors[field]) {
-      setErrors((e) => ({ ...e, [field]: '' }));
-    }
+    if (errors[field]) setErrors((e) => ({ ...e, [field]: '' }));
   };
 
-  /** Validate and submit */
   const handleSubmit = () => {
     const newErrors = {};
-
     if (!values.phoneNumber.trim()) {
-      newErrors.phoneNumber = '请输入手机号码';
+      newErrors.phoneNumber = '请输入号码';
     } else if (!validatePhoneNumber(values.phoneNumber.trim())) {
-      newErrors.phoneNumber = '请输入正确的11位手机号码';
+      newErrors.phoneNumber = '号码格式不正确（至少5位）';
     }
-
+    if (!values.carrier.trim()) {
+      newErrors.carrier = '请输入运营商';
+    }
     if (!values.cycleDays || values.cycleDays < 1) {
       newErrors.cycleDays = '保号周期必须大于0';
     }
-
     if (!values.lastKeepDate) {
       newErrors.lastKeepDate = '请选择上次保号日期';
     }
-
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-
     onSubmit({
       phoneNumber: values.phoneNumber.trim(),
-      carrier: values.carrier,
+      carrier: values.carrier.trim(),
       cycleDays: Number(values.cycleDays),
       lastKeepDate: values.lastKeepDate,
       note: values.note.trim(),
@@ -98,34 +82,28 @@ export default function PhoneForm({ open, phone, onSubmit, onClose }) {
       </DialogTitle>
       <DialogContent dividers>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}>
-          {/* Phone Number */}
           <TextField
-            label="手机号码"
-            placeholder="请输入11位手机号码"
+            label="手机/电话号码"
+            placeholder="支持国际号码，如 +1 2345678901"
             value={values.phoneNumber}
             onChange={handleChange('phoneNumber')}
             error={!!errors.phoneNumber}
-            helperText={errors.phoneNumber}
-            inputProps={{ maxLength: 11 }}
+            helperText={errors.phoneNumber || '至少5位数字'}
             fullWidth
             required
           />
 
-          {/* Carrier */}
-          <FormControl fullWidth>
-            <InputLabel>运营商</InputLabel>
-            <Select
-              value={values.carrier}
-              label="运营商"
-              onChange={handleChange('carrier')}
-            >
-              {CARRIER_OPTIONS.map((c) => (
-                <MenuItem key={c} value={c}>{c}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <TextField
+            label="运营商"
+            placeholder="如：中国移动、AT&T、Vodafone..."
+            value={values.carrier}
+            onChange={handleChange('carrier')}
+            error={!!errors.carrier}
+            helperText={errors.carrier || '自由填写运营商名称'}
+            fullWidth
+            required
+          />
 
-          {/* Cycle Days */}
           <TextField
             label="保号周期（天）"
             type="number"
@@ -137,7 +115,6 @@ export default function PhoneForm({ open, phone, onSubmit, onClose }) {
             fullWidth
           />
 
-          {/* Last Keep Date */}
           <TextField
             label="上次保号日期"
             type="date"
@@ -149,7 +126,6 @@ export default function PhoneForm({ open, phone, onSubmit, onClose }) {
             fullWidth
           />
 
-          {/* Note */}
           <TextField
             label="备注"
             placeholder="可选备注信息"

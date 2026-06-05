@@ -30,16 +30,19 @@ function getPhoneStatus(phone) {
   let status = 'normal';
   if (diffDays <= 0) status = 'expired';
   else if (diffDays <= 3) status = 'warning';
+  else if (diffDays <= 5) status = 'warn5';
   return { status, remainingDays: diffDays };
 }
 
 const expired = [];
 const warning = [];
+const warn5 = [];
 const normal = [];
 for (const phone of phones) {
   const { status, remainingDays } = getPhoneStatus(phone);
   if (status === 'expired') expired.push({ ...phone, remainingDays });
   else if (status === 'warning') warning.push({ ...phone, remainingDays });
+  else if (status === 'warn5') warn5.push({ ...phone, remainingDays });
   else normal.push({ ...phone, remainingDays });
 }
 
@@ -70,8 +73,16 @@ if (expired.length > 0) {
 }
 
 if (warning.length > 0) {
-  html += `<h3 style="color:#F59E0B;">⚡ ${warning.length} 个即将到期</h3><ul>`;
+  html += `<h3 style="color:#F97316;">⚡ ${warning.length} 个即将到期（3天内）</h3><ul>`;
   for (const p of warning) {
+    html += `<li><strong>${p.phoneNumber}</strong>（${p.carrier}）— 剩余 ${p.remainingDays} 天</li>`;
+  }
+  html += `</ul>`;
+}
+
+if (warn5.length > 0) {
+  html += `<h3 style="color:#F59E0B;">🔔 ${warn5.length} 个即将到期（5天内）</h3><ul>`;
+  for (const p of warn5) {
     html += `<li><strong>${p.phoneNumber}</strong>（${p.carrier}）— 剩余 ${p.remainingDays} 天</li>`;
   }
   html += `</ul>`;
@@ -104,7 +115,7 @@ const transporter = nodemailer.createTransport({
 });
 
 console.log(`发件: ${smtpUser} → 收件: ${toEmail}`);
-console.log(`号码总数: ${phones.length}, 过期: ${expired.length}, 临期: ${warning.length}, 正常: ${normal.length}`);
+console.log(`号码总数: ${phones.length}, 过期: ${expired.length}, 3天内: ${warning.length}, 5天内: ${warn5.length}, 正常: ${normal.length}`);
 
 transporter.sendMail({ from: smtpUser, to: toEmail, subject, html })
   .then((info) => {

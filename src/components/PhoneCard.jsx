@@ -31,7 +31,9 @@ export default function PhoneCard({ phone, onEdit, onDelete, onKeep, onRecords }
     status === 'expired'
       ? `已过期 ${Math.abs(remainingDays)} 天`
       : status === 'warning'
-      ? `剩余 ${remainingDays} 天`
+      ? `紧急！剩余 ${remainingDays} 天`
+      : status === 'warn5'
+      ? `注意：剩余 ${remainingDays} 天`
       : `剩余 ${remainingDays} 天`;
 
   return (

@@ -91,14 +91,16 @@ export default function usePhones(user) {
 
   const getStats = useCallback(() => {
     let total = phones.length;
+    let warn5 = 0;
     let warning = 0;
     let expired = 0;
     for (const phone of phones) {
       const { status } = getPhoneStatus(phone);
+      if (status === 'warn5') warn5++;
       if (status === 'warning') warning++;
       if (status === 'expired') expired++;
     }
-    return { total, warning, expired };
+    return { total, warn5, warning, expired };
   }, [phones]);
 
   return { phones, loading, addPhone, updatePhone, deletePhone, keepPhone, getStats };
