@@ -10,7 +10,7 @@ const path = require('path');
 const nodemailer = require('nodemailer');
 
 // --- 读取号码数据 ---
-const PHONES_FILE = path.join(__dirname, '..', 'server', 'data', 'phones.json');
+const PHONES_FILE = path.join(__dirname, '..', 'data', 'phones.json');
 
 let phones = [];
 try {
