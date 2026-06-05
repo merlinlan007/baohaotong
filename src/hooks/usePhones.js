@@ -1,163 +1,105 @@
 import { useState, useEffect, useCallback } from 'react';
-import {
-  generateId,
-  getTodayStr,
-  getPhoneStatus,
-} from '../utils/helpers';
-
-const STORAGE_KEY = 'baohatong_phones';
+import { loadPhones as ghLoad, savePhones as ghSave, getStoredToken } from '../github-api';
+import { generateId, getTodayStr, getPhoneStatus } from '../utils/helpers';
 
 /**
- * Create the initial sample phone record.
- * @returns {object}
+ * Custom hook for managing phone numbers via GitHub repo.
+ * Data is stored in the repo's data/phones.json file.
+ * @param {object|null} user - GitHub user info
  */
-function createSamplePhone() {
-  const today = new Date();
-  const tenDaysAgo = new Date(today);
-  tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
-  const y = tenDaysAgo.getFullYear();
-  const m = String(tenDaysAgo.getMonth() + 1).padStart(2, '0');
-  const d = String(tenDaysAgo.getDate()).padStart(2, '0');
-  const lastKeepDate = `${y}-${m}-${d}`;
+export default function usePhones(user) {
+  const [phones, setPhones] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  return {
-    id: generateId(),
-    phoneNumber: '13800138000',
-    carrier: '中国移动',
-    cycleDays: 30,
-    lastKeepDate,
-    note: '示例号码',
-    records: [
-      {
-        id: generateId(),
-        date: lastKeepDate,
-        method: '系统初始化',
-        note: '预置示例数据',
-      },
-    ],
-    createdAt: lastKeepDate,
-  };
-}
+  useEffect(() => {
+    if (!user || !getStoredToken()) {
+      setPhones([]);
+      setLoading(false);
+      return;
+    }
 
-/**
- * Load phones from localStorage, or initialize with sample data.
- * @returns {Array}
- */
-function loadPhones() {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      try {
+        const data = await ghLoad();
+        if (!cancelled) setPhones(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error('Failed to load phones:', e.message);
+        if (!cancelled) setPhones([]);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
-  } catch (e) {
-    console.warn('Failed to load phones from localStorage:', e);
-  }
-  return [createSamplePhone()];
-}
 
-/**
- * Custom hook for managing phone numbers.
- * @returns {object} State and action functions
- */
-export default function usePhones() {
-  const [phones, setPhones] = useState(() => loadPhones());
+    load();
+    return () => { cancelled = true; };
+  }, [user]);
 
-  // Persist to localStorage whenever phones change
-  useEffect(() => {
+  /** Save to GitHub after state change */
+  const persist = useCallback(async (newPhones) => {
+    const token = getStoredToken();
+    if (!token) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(phones));
+      await ghSave(newPhones);
     } catch (e) {
-      console.warn('Failed to save phones to localStorage:', e);
+      console.error('Failed to save phones:', e.message);
     }
-  }, [phones]);
+  }, []);
 
-  /**
-   * Add a new phone number.
-   * @param {object} data - Phone data without id, records, createdAt
-   */
-  const addPhone = useCallback((data) => {
+  const addPhone = useCallback(async (data) => {
     const now = getTodayStr();
     const newPhone = {
-      ...data,
       id: generateId(),
+      phoneNumber: data.phoneNumber,
+      carrier: data.carrier,
+      cycleDays: data.cycleDays,
+      lastKeepDate: data.lastKeepDate,
+      note: data.note || '',
       records: [],
       createdAt: now,
     };
-    setPhones((prev) => [newPhone, ...prev]);
-  }, []);
+    const updated = [newPhone, ...phones];
+    setPhones(updated);
+    await persist(updated);
+  }, [phones, persist]);
 
-  /**
-   * Update an existing phone number.
-   * @param {string} id
-   * @param {object} data - Updated fields
-   */
-  const updatePhone = useCallback((id, data) => {
-    setPhones((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...data } : p)),
-    );
-  }, []);
+  const updatePhone = useCallback(async (id, data) => {
+    const updated = phones.map((p) => (p.id === id ? { ...p, ...data } : p));
+    setPhones(updated);
+    await persist(updated);
+  }, [phones, persist]);
 
-  /**
-   * Delete a phone number.
-   * @param {string} id
-   */
-  const deletePhone = useCallback((id) => {
-    setPhones((prev) => prev.filter((p) => p.id !== id));
-  }, []);
+  const deletePhone = useCallback(async (id) => {
+    const updated = phones.filter((p) => p.id !== id);
+    setPhones(updated);
+    await persist(updated);
+  }, [phones, persist]);
 
-  /**
-   * Mark a phone as "kept alive" — update lastKeepDate and add record.
-   * @param {string} id
-   * @param {string} [method='手动保号']
-   * @param {string} [note='']
-   */
-  const keepPhone = useCallback((id, method = '手动保号', note = '') => {
+  const keepPhone = useCallback(async (id, method = '手动保号', note = '') => {
     const today = getTodayStr();
-    const record = {
-      id: generateId(),
-      date: today,
-      method,
-      note,
-    };
-    setPhones((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? {
-              ...p,
-              lastKeepDate: today,
-              records: [...p.records, record],
-            }
-          : p,
-      ),
+    const record = { id: generateId(), date: today, method, note };
+    const updated = phones.map((p) =>
+      p.id === id
+        ? { ...p, lastKeepDate: today, records: [...(p.records || []), record] }
+        : p,
     );
-  }, []);
+    setPhones(updated);
+    await persist(updated);
+  }, [phones, persist]);
 
-  /**
-   * Get computed stats for all phones.
-   */
   const getStats = useCallback(() => {
     let total = phones.length;
     let warning = 0;
     let expired = 0;
-
     for (const phone of phones) {
       const { status } = getPhoneStatus(phone);
       if (status === 'warning') warning++;
       if (status === 'expired') expired++;
     }
-
     return { total, warning, expired };
   }, [phones]);
 
-  return {
-    phones,
-    addPhone,
-    updatePhone,
-    deletePhone,
-    keepPhone,
-    getStats,
-  };
+  return { phones, loading, addPhone, updatePhone, deletePhone, keepPhone, getStats };
 }
