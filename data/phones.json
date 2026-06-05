@@ -1,19 +1,12 @@
 [
   {
-    "id": "sample-001",
-    "phoneNumber": "13800138000",
+    "id": "mq0bego5h1sl61d",
+    "phoneNumber": "13882987635",
     "carrier": "中国移动",
-    "cycleDays": 30,
-    "lastKeepDate": "2026-05-26",
-    "note": "示例号码",
-    "records": [
-      {
-        "id": "rec-001",
-        "date": "2026-05-26",
-        "method": "系统初始化",
-        "note": "预置示例数据"
-      }
-    ],
-    "createdAt": "2026-05-26"
+    "cycleDays": 6,
+    "lastKeepDate": "2026-06-01",
+    "note": "",
+    "records": [],
+    "createdAt": "2026-06-05"
   }
 ]
