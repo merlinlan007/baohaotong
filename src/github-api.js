@@ -50,31 +50,37 @@ export async function verifyToken(token) {
   return { login: user.login, email: user.email || user.login };
 }
 
+/** UTF-8 safe base64 encode */
+function base64Encode(str) {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+
+/** UTF-8 safe base64 decode */
+function base64Decode(b64) {
+  return decodeURIComponent(escape(atob(b64)));
+}
+
 /** 从仓库读取手机号数据 */
 export async function loadPhones() {
   try {
     const data = await api(`/repos/${OWNER}/${REPO}/contents/${DATA_PATH}`);
-    // GitHub API 返回 base64 编码的内容
-    const content = atob(data.content);
+    const content = base64Decode(data.content);
     return JSON.parse(content);
   } catch (e) {
-    if (e.message.includes('404')) return []; // 文件不存在
+    if (e.message.includes('404')) return [];
     throw e;
   }
 }
 
 /** 保存手机号数据到仓库 */
 export async function savePhones(phones) {
-  // 先获取当前文件的 sha（如果存在）
   let sha = undefined;
   try {
     const data = await api(`/repos/${OWNER}/${REPO}/contents/${DATA_PATH}`);
     sha = data.sha;
-  } catch (e) {
-    // 文件不存在，新建
-  }
+  } catch (e) {}
 
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(phones, null, 2))));
+  const content = base64Encode(JSON.stringify(phones, null, 2));
   const body = {
     message: 'Update phones data',
     content,
