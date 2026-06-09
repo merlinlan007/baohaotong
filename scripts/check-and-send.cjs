@@ -1,6 +1,6 @@
 /**
- * 保号通 — 邮件检查脚本
- * 每次运行都发送状态报告，方便验证邮件通道是否正常
+ * 保号通 — 邮件提醒脚本
+ * 仅在号码需保号前5天/前3天/已过期时发送提醒，全部正常则不发邮件
  */
 const fs = require('fs');
 const path = require('path');
@@ -46,6 +46,12 @@ for (const phone of phones) {
   else normal.push({ ...phone, remainingDays });
 }
 
+// 全部正常 → 不打扰，不发邮件
+if (expired.length === 0 && warning.length === 0 && warn5.length === 0) {
+  console.log('所有号码状态正常，无需发送提醒。');
+  process.exit(0);
+}
+
 // SMTP 配置
 const smtpHost = process.env.SMTP_HOST;
 const smtpPort = parseInt(process.env.SMTP_PORT || '465', 10);
@@ -60,9 +66,8 @@ if (!smtpHost || !smtpUser || !smtpPass || !toEmail) {
 
 // 构建邮件
 const now = new Date();
-let html = `<h2 style="color:#1F2937;">保号通 — 保号状态报告</h2>`;
+let html = `<h2 style="color:#1F2937;">保号通 — 保号提醒</h2>`;
 html += `<p style="color:#6B7280;">检查时间：${now.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}</p>`;
-html += `<p>共 <strong>${phones.length}</strong> 个号码</p>`;
 
 if (expired.length > 0) {
   html += `<h3 style="color:#DC2626;">⚠ ${expired.length} 个已过期</h3><ul>`;
@@ -88,23 +93,9 @@ if (warn5.length > 0) {
   html += `</ul>`;
 }
 
-if (normal.length > 0) {
-  html += `<h3 style="color:#10B981;">✅ ${normal.length} 个正常</h3><ul>`;
-  for (const p of normal) {
-    html += `<li><strong>${p.phoneNumber}</strong>（${p.carrier}）— 剩余 ${p.remainingDays} 天，周期 ${p.cycleDays} 天</li>`;
-  }
-  html += `</ul>`;
-}
-
-if (phones.length === 0) {
-  html += `<p style="color:#9CA3AF;">暂无号码数据。</p>`;
-}
-
 html += `<hr style="border-color:#E5E7EB;"><p style="color:#9CA3AF;font-size:12px;">此邮件由保号通自动发送 | GitHub Actions</p>`;
 
-const subject = expired.length + warning.length > 0
-  ? `保号通提醒 — ${expired.length}过期 ${warning.length}临期`
-  : `保号通状态报告 — 全部正常 ✅`;
+const subject = `保号通提醒 — ${expired.length}过期 ${warning.length}临期 ${warn5.length}预警`;
 
 // 发送
 const transporter = nodemailer.createTransport({
