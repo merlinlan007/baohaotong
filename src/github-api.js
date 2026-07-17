@@ -23,6 +23,10 @@ export function getStoredToken() {
   return getToken();
 }
 
+/** Token 失效回调，由 App 注册 */
+let _onAuthError = null;
+export function onAuthError(callback) { _onAuthError = callback; }
+
 async function api(path, options = {}) {
   const token = getToken();
   const res = await fetch(`https://api.github.com${path}`, {
@@ -34,6 +38,12 @@ async function api(path, options = {}) {
     },
   });
   if (!res.ok) {
+    // Token 过期或无效 → 自动清除并通知 App 跳转登录
+    if (res.status === 401) {
+      clearToken();
+      if (_onAuthError) _onAuthError();
+      throw new Error('TOKEN_EXPIRED');
+    }
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || `API error: ${res.status}`);
   }

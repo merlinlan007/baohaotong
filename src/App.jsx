@@ -30,7 +30,7 @@ import RecordDialog from './components/RecordDialog';
 import ReminderBanner from './components/ReminderBanner';
 import AuthPage from './components/AuthPage';
 import usePhones from './hooks/usePhones';
-import { clearToken, getStoredToken } from './github-api';
+import { clearToken, getStoredToken, onAuthError } from './github-api';
 
 const theme = createTheme({
   palette: {
@@ -59,6 +59,11 @@ export default function App() {
     const token = getStoredToken();
     return token ? { login: 'github' } : null;
   });
+
+  // Token 过期时自动跳回登录页
+  useEffect(() => {
+    onAuthError(() => setUser(null));
+  }, []);
 
   const { phones, loading: phonesLoading, addPhone, updatePhone, deletePhone, keepPhone, getStats } = usePhones(user);
 
