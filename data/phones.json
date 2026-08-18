@@ -14,9 +14,16 @@
     "phoneNumber": "+4915224892688",
     "carrier": "德国沃达丰",
     "cycleDays": 90,
-    "lastKeepDate": "2026-05-23",
+    "lastKeepDate": "2026-08-18",
     "note": "",
-    "records": [],
+    "records": [
+      {
+        "id": "msxxpkuywx9a9kv",
+        "date": "2026-08-18",
+        "method": "手动保号",
+        "note": ""
+      }
+    ],
     "createdAt": "2026-06-07"
   }
 ]
