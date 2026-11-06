@@ -6,6 +6,11 @@ on:
   schedule:
     - cron: '0 0,12 * * *'
   workflow_dispatch:   # 允许手动触发
+    inputs:
+      forceSend:
+        description: '强制发送测试邮件（忽略号码状态）'
+        type: boolean
+        default: false
 
 jobs:
   check-and-send:
@@ -27,3 +32,4 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           TO_EMAIL: ${{ secrets.TO_EMAIL }}
+          FORCE_SEND: ${{ github.event.inputs.forceSend }}

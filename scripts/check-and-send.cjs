@@ -46,8 +46,9 @@ for (const phone of phones) {
   else normal.push({ ...phone, remainingDays });
 }
 
-// 全部正常 → 不打扰，不发邮件
-if (expired.length === 0 && warning.length === 0 && warn5.length === 0) {
+// 全部正常 → 不打扰，不发邮件（除非 FORCE_SEND=true 强制发送测试邮件）
+const forceSend = process.env.FORCE_SEND === 'true';
+if (!forceSend && expired.length === 0 && warning.length === 0 && warn5.length === 0) {
   console.log('所有号码状态正常，无需发送提醒。');
   process.exit(0);
 }
@@ -66,7 +67,7 @@ if (!smtpHost || !smtpUser || !smtpPass || !toEmail) {
 
 // 构建邮件
 const now = new Date();
-let html = `<h2 style="color:#1F2937;">保号通 — 保号提醒</h2>`;
+let html = `<h2 style="color:#1F2937;">保号通 — ${forceSend ? '测试邮件' : '保号提醒'}</h2>`;
 html += `<p style="color:#6B7280;">检查时间：${now.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}</p>`;
 
 if (expired.length > 0) {
@@ -93,9 +94,20 @@ if (warn5.length > 0) {
   html += `</ul>`;
 }
 
+// 测试邮件或全部正常时，显示所有号码状态
+if (forceSend || (expired.length === 0 && warning.length === 0 && warn5.length === 0)) {
+  html += `<h3 style="color:#10B981;">✅ ${normal.length} 个正常</h3><ul>`;
+  for (const p of normal) {
+    html += `<li><strong>${p.phoneNumber}</strong>（${p.carrier}）— 剩余 ${p.remainingDays} 天，周期 ${p.cycleDays} 天</li>`;
+  }
+  html += `</ul>`;
+}
+
 html += `<hr style="border-color:#E5E7EB;"><p style="color:#9CA3AF;font-size:12px;">此邮件由保号通自动发送 | GitHub Actions</p>`;
 
-const subject = `保号通提醒 — ${expired.length}过期 ${warning.length}临期 ${warn5.length}预警`;
+const subject = forceSend
+  ? `保号通测试邮件 — 共${phones.length}个号码`
+  : `保号通提醒 — ${expired.length}过期 ${warning.length}临期 ${warn5.length}预警`;
 
 // 发送
 const transporter = nodemailer.createTransport({
